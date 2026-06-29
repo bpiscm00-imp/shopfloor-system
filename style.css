@@ -1,0 +1,236 @@
+/* --- RESET & BASE STYLES --- */
+* { 
+  box-sizing: border-box; 
+  margin: 0; 
+  padding: 0; 
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+}
+
+body { 
+  background: #f4f5f6; 
+  color: #333; 
+  padding: 16px; 
+  min-height: 100vh; 
+  display: flex; 
+  justify-content: center; 
+}
+
+.app-container { 
+  max-width: 500px; 
+  width: 100%; 
+  background: #ffffff; 
+  border-radius: 16px; 
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05); 
+  padding: 20px; 
+  min-height: calc(100vh - 32px); 
+  display: flex; 
+  flex-direction: column; 
+}
+
+/* --- HEADER UTAMA --- */
+.header { 
+  margin-bottom: 20px; 
+  border-bottom: 2px solid #f0f0f0; 
+  padding-bottom: 12px; 
+  position: relative; 
+}
+
+.header h1 { 
+  font-size: 18px; 
+  color: #1a1a1a; 
+  font-weight: 700; 
+}
+
+.header p { 
+  font-size: 12px; 
+  color: #666; 
+  margin-top: 2px; 
+}
+
+.btn-logout { 
+  position: absolute; 
+  right: 0; 
+  top: 2px; 
+  background: #ff4d4f; 
+  color: white; 
+  border: none; 
+  padding: 4px 10px; 
+  border-radius: 6px; 
+  font-size: 11px; 
+  font-weight: 600; 
+  cursor: pointer; 
+  display: none; 
+}
+
+/* --- SECTIONS ANIMATION --- */
+.card-section { 
+  display: none; 
+  animation: fadeIn 0.2s ease-in-out forwards; 
+}
+
+@keyframes fadeIn { 
+  from { opacity: 0; } 
+  to { opacity: 1; } 
+}
+
+/* --- FORM STYLES --- */
+label { 
+  display: block; 
+  font-size: 13px; 
+  font-weight: 600; 
+  margin-bottom: 6px; 
+  color: #444; 
+  margin-top: 10px; 
+}
+
+input[type="text"], input[type="password"], input[type="number"], input[type="time"], input[type="date"], select, textarea { 
+  width: 100%; 
+  padding: 12px; 
+  border: 1px solid #d9d9d9; 
+  border-radius: 8px; 
+  font-size: 14px; 
+  margin-bottom: 10px; 
+  outline: none; 
+  background: #fafafa; 
+}
+
+input:focus, select:focus, textarea:focus { 
+  border-color: #1890ff; 
+  background: #fff; 
+  box-shadow: 0 0 0 2px rgba(24,144,255,0.2); 
+}
+
+/* --- BUTTONS --- */
+.btn { 
+  width: 100%; 
+  padding: 14px; 
+  border: none; 
+  border-radius: 8px; 
+  font-size: 14px; 
+  font-weight: 600; 
+  cursor: pointer; 
+  transition: all 0.2s; 
+  text-align: center; 
+}
+
+.btn-primary { background: #1890ff; color: white; }
+.btn-success { background: #52c41a; color: white; }
+.btn-danger { background: #ff4d4f; color: white; }
+
+/* --- GRID TOMBOL STATUS GATEWAY (SIC) --- */
+.status-gate-grid { 
+  display: grid; 
+  grid-template-columns: repeat(2, 1fr); 
+  gap: 10px; 
+  margin-top: 15px; 
+}
+
+.btn-gate { 
+  padding: 12px; 
+  font-size: 13px; 
+  font-weight: 600; 
+  border: 1px solid #d9d9d9; 
+  border-radius: 8px; 
+  background: #fafafa; 
+  cursor: pointer; 
+  text-align: center; 
+}
+
+.gate-mulai { border-color: #b7eb8f; color: #389e0d; background: #f6ffed; }
+.gate-sedang { border-color: #91d5ff; color: #096dd9; background: #e6f7ff; }
+.gate-istirahat { border-color: #ffe58f; color: #d46b08; background: #fffbe6; }
+.gate-sanitasi { border-color: #d3adf7; color: #531dab; background: #f9f0ff; }
+.gate-selesai { border-color: #ffa39e; color: #cf1322; background: #fff1f0; grid-column: span 2; }
+
+.status-group-flex { 
+  display: grid; 
+  grid-template-columns: 1fr 1fr; 
+  gap: 10px; 
+  margin-bottom: 14px; 
+}
+
+.toggle-btn { 
+  padding: 12px; 
+  border: 1px solid #d9d9d9; 
+  border-radius: 8px; 
+  font-weight: 600; 
+  cursor: pointer; 
+  background: #fafafa; 
+  text-align: center; 
+}
+
+.toggle-btn.active { 
+  background: #e6f7ff; 
+  border-color: #1890ff; 
+  color: #1890ff; 
+}
+
+/* --- SCROLLABLE CONTAINER UNTUK PANEL HISTORY LOG --- */
+#sec-history { 
+  margin-top: auto; 
+  border-top: 2px dashed #e8e8e8; 
+  padding-top: 15px; 
+  min-height: 160px; 
+  display: flex;
+  flex-direction: column;
+}
+
+.table-scroll-container {
+  max-height: 220px; 
+  overflow-y: auto;  
+  margin-top: 8px;
+  border: 1px solid #e8e8e8;
+  border-radius: 8px;
+}
+
+.log-table { 
+  width: 100%; 
+  border-collapse: collapse; 
+  font-size: 11px; 
+  text-align: left; 
+}
+
+.log-table th, .log-table td { 
+  padding: 10px 6px; 
+  border-bottom: 1px solid #e8e8e8; 
+}
+
+.log-table th { 
+  background: #fafafa; 
+  color: #555; 
+  font-weight: 600; 
+  position: sticky; 
+  top: 0; 
+  z-index: 1;
+  border-bottom: 2px solid #e8e8e8;
+}
+
+.badge-info-log { 
+  background: #f5f5f5; 
+  color: #555; 
+  padding: 2px 5px; 
+  border-radius: 4px; 
+  font-weight: 600; 
+  font-size: 10px; 
+  border: 1px solid #d9d9d9; 
+}
+
+.resume-card { 
+  background: #fafafa; 
+  border: 1px solid #e8e8e8; 
+  border-radius: 8px; 
+  padding: 14px; 
+  margin-top: 10px; 
+  font-size: 13px; 
+  line-height: 1.6; 
+}
+
+.resume-item { 
+  display: flex; 
+  justify-content: space-between; 
+  border-bottom: 1px dashed #eee; 
+  padding: 4px 0; 
+}
+
+.resume-item span:first-child { color: #666; font-weight: 500; }
+.resume-item span:last-child { color: #111; font-weight: 700; }

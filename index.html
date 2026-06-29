@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Shopfloor Dashboard</title>
+  <!-- HUBUNGKAN KE FILE CSS EKSTERNAL -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="app-container">
+  <!-- HEADER PANEL -->
+  <div class="header">
+    <h1 id="txt-app-title">Shopfloor System</h1>
+    <p id="txt-app-subtitle">Silakan masukkan PIN otorisasi Anda.</p>
+    <button id="btn-logout" class="btn-logout" onclick="logoutAplikasi()">Keluar / Ganti PIN</button>
+  </div>
+
+  <!-- SECTION 1: LOGIN PIN -->
+  <div id="sec-login" class="card-section" style="display: block;">
+    <label for="input-pin">Masukkan PIN Otorisasi Anda (4 Angka):</label>
+    <input type="password" id="input-pin" inputmode="numeric" pattern="[0-9]*" placeholder="Ketik PIN Anda..." onkeyup="cekPINPanjangKarakter()" />
+    <button id="btn-login-submit" class="btn btn-primary" style="margin-top: 10px;" onclick="verifikasiPINKeBackend()">Verifikasi & Masuk ➔</button>
+    <p id="txt-login-loading" style="font-size: 12px; color: #1890ff; text-align: center; margin-top: 10px; display: none; font-weight: 600;">🔄 Menghubungi server, mohon tunggu...</p>
+  </div>
+
+  <!-- SECTION 2: FILTER DATA UNIVERSAL -->
+  <div id="sec-filter" class="card-section">
+    <!-- Generator Batch Baru Khusus SIC Mixing -->
+    <div id="block-mixing-generator" style="display: none; background: #fff7e6; padding: 12px; border-radius: 8px; margin-bottom: 10px; border: 1px dashed #ffd591;">
+      <label style="color: #d46b08; margin-top:0;">⚠️ Khusus SIC Mixing (Buat Batch Hulu):</label>
+      <input type="text" id="input-batch-baru" placeholder="Ketik No Batch Baru..." style="margin-bottom: 6px;" />
+      <button class="btn btn-primary" style="padding: 6px; font-size: 11px; background: #fa8c16;" onclick="generateBatchBaru()">Generate Batch</button>
+    </div>
+
+    <!-- 1. SEARCHABLE DROPDOWN NO BATCH -->
+    <label for="select-batch">1. Pilih / Cari Nomor Batch Aktif:</label>
+    <input type="text" id="select-batch" list="list-batch-aktif" placeholder="Ketik untuk mencari No Batch..." onchange="evaluasiKondisiTampilanUniversal()" />
+    <datalist id="list-batch-aktif"></datalist>
+
+    <!-- KONDISI A: FILTER OPERATOR/STAFF (SIC, QC, OEE) -->
+    <div id="block-staff-filter-options">
+      <div id="block-brand-and-machine-selectors">
+        <!-- 2. SEARCHABLE DROPDOWN SUBBRAND -->
+        <label for="select-subbrand">2. Pilih / Cari Subbrand Master:</label>
+        <input type="text" id="select-subbrand" list="list-subbrand-aktif" placeholder="Ketik untuk mencari subbrand..." />
+        <datalist id="list-subbrand-aktif"></datalist>
+
+        <!-- 3. SEARCHABLE DROPDOWN NAMA MESIN -->
+        <label for="select-mesin">3. Pilih / Cari Nama Mesin / Proses:</label>
+        <input type="text" id="select-mesin" list="list-mesin-universal" placeholder="Ketik untuk mencari nama mesin..." onchange="evaluasiKondisiTampilanUniversal()" />
+        <datalist id="list-mesin-universal"></datalist>
+
+        <!-- 4. NOMOR MESIN ISIAN SINGKAT MANUAL -->
+        <label id="lbl-select-no-mesin" for="select-no-mesin">4. Nomor Mesin / Line (Input Manual):</label>
+        <input type="text" id="select-no-mesin" placeholder="Ketik nomor mesin fisis lapangan (misal: Line #1)..." />
+      </div>
+
+      <!-- KONDISIONAL INPUT PENANDA SPLIT BATCH EYESHADOW -->
+      <div id="block-conditional-eyeshadow-kit" style="display: none; background: #fffbe6; padding: 14px; border: 1px dashed #ffe58f; border-radius: 8px; margin-top: 12px; margin-bottom: 4px; animation: fadeIn 0.3s;">
+        <label for="input-eyeshadow-kit-digit" style="color: #d46b08; margin-top:0;">⚠️ Penanda Sub-Batch (Proses Press Eyeshadow):</label>
+        <input type="number" id="input-eyeshadow-kit-digit" min="1" max="9" placeholder="Digunakan untuk kit (Isi Angka)..." onkeyup="kalkulasiLivePreviewSplitBatch()" />
+        <p style="font-size: 11px; color:#555; margin-top: 2px;">No Batch tujuan di database: <b id="lbl-preview-split-batch" style="color:#096dd9;">—</b></p>
+      </div>
+
+      <!-- Parameter Tambahan Khusus Filter OEE Staff -->
+      <div id="block-oee-extra-filter" style="display: none;">
+        <label for="oee-spv">5. SPV Penanggung Jawab:</label>
+        <select id="oee-spv"></select>
+        
+        <label for="oee-tanggal">6. Tanggal Produksi:</label>
+        <input type="date" id="oee-tanggal" />
+
+        <label for="oee-area">7. Area Kerja (Dinamis DB_Mesin):</label>
+        <select id="oee-area"></select>
+      </div>
+    </div>
+
+    <!-- KONDISI B: PREVIEW RINGKASAN DATA KUMULATIF (KHUSUS TIM SPV) -->
+    <div id="block-spv-resume-view" style="display: none; margin-top: 10px;">
+      <label style="color: #1890ff;">📝 Resume Akumulasi Performa Batch Saat Ini:</label>
+      <div class="resume-card">
+        <div class="resume-item"><span>Tanggal Mulai</span><span id="res-tgl">—</span></div>
+        <div class="resume-item"><span>Varian Produk</span><span id="res-varian">—</span></div>
+        <div class="resume-item"><span>Total Output (Pcs)</span><span id="res-output">0 Pcs</span></div>
+        <div class="resume-item"><span>Total Reject (Pcs)</span><span id="res-reject" style="color:#cf1322;">0 Pcs</span></div>
+        <div class="resume-item"><span>Total Reproses (Kg)</span><span id="res-repro" style="color:#d46b08;">0 Kg</span></div>
+        <div class="resume-item"><span>Total Waktu Operasional</span><span id="res-waktu-kerja" style="color:#111;">—</span></div>
+      </div>
+    </div>
+
+    <!-- GERBANG TOMBOL TIM SIC -->
+    <div id="gate-sic" style="display: none;">
+      <label>Pilih Status Aktivitas Jam Ini Untuk Membuka Form:</label>
+      <div class="status-gate-grid">
+        <button class="btn-gate gate-mulai" onclick="bukaFormDenganStatus('MULAI')">🟢 Mulai</button>
+        <button class="btn-gate gate-sedang" onclick="bukaFormDenganStatus('SEDANG PROSES')">⚡ Sedang Proses</button>
+        <button class="btn-gate gate-istirahat" onclick="bukaFormDenganStatus('ISTIRAHAT')">🟡 Istirahat</button>
+        <button class="btn-gate gate-sanitasi" onclick="bukaFormDenganStatus('SANITASI')">🟢 Sanitasi</button>
+        <button class="btn-gate gate-selesai" onclick="bukaFormDenganStatus('SELESAI')">⚫ Selesai</button>
+      </div>
+    </div>
+
+    <!-- GERBANG TOMBOL QC, OEE, DAN MAINTENANCE -->
+    <button id="btn-gate-universal" class="btn btn-primary" style="margin-top: 15px;" onclick="bukaFormDenganStatus('NORMAL')">Mulai Monitoring ➔</button>
+
+    <!-- GERBANG LOCK SPV CLOSE OUT -->
+    <button id="btn-gate-spv-close" class="btn btn-danger" style="margin-top: 20px; display: none;" onclick="eksekusiLockCloseOutSPVServer()">🔒 Verifikasi & Close Out Batch</button>
+  </div>
+
+  <!-- SECTION 3: FORM INPUT KUSTOM STAFF -->
+  <div id="sec-form" class="card-section">
+    <!-- TIM SIC FORM -->
+    <div id="form-sic" style="display: none;">
+      <h3 id="txt-status-sic-badge" style="margin-bottom: 12px; font-size:14px; color:#1890ff;">Status: SEDANG PROSES</h3>
+      <label for="sic-output">Jumlah Output Kumulatif Jam Ini (Pcs):</label>
+      <input type="number" id="sic-output" placeholder="0" min="0" />
+      <label for="sic-alasan">Alasan Khusus (Jika ada kondisi tertentu):</label>
+      <textarea id="sic-alasan" rows="3" placeholder="Ketik alasan khusus fisis lapangan..."></textarea>
+    </div>
+
+    <!-- TIM QC FORM -->
+    <div id="form-qc" style="display: none;">
+      <label>Pilih Status Monitoring Anda:</label>
+      <div class="status-group-flex">
+        <button id="btn-qc-status-awal" class="toggle-btn" onclick="setQCStatus('AWAL')">Awal Monitoring</button>
+        <button id="btn-qc-status-akhir" class="toggle-btn" onclick="setQCStatus('AKHIR')">Akhir Monitoring</button>
+      </div>
+      <label for="qc-reject">Jumlah Reject (Pcs):</label>
+      <input type="number" id="qc-reject" placeholder="0" min="0" />
+      <label for="qc-repro">Jumlah Reproses (Kg):</label>
+      <input type="number" id="qc-repro" placeholder="0" min="0" />
+      <label for="qc-alasan">Alasan Terjadinya Reject / Reproses:</label>
+      <textarea id="qc-alasan" rows="3" placeholder="Ketik alasan penyebab reject atau reproses..."></textarea>
+    </div>
+
+    <!-- TIM OEE STAFF FORM -->
+    <div id="form-oee" style="display: none;">
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+        <div><label for="oee-jam-mulai">Jam Mulai:</label><input type="time" id="oee-jam-mulai" /></div>
+        <div><label for="oee-jam-selesai">Jam Selesai:</label><input type="time" id="oee-jam-selesai" /></div>
+      </div>
+      <label for="oee-istirahat">Waktu Istirahat (Menit):</label>
+      <input type="number" id="oee-istirahat" placeholder="0" min="0" />
+      <label for="oee-capaian">Capaian Produksi (Pcs):</label>
+      <input type="number" id="oee-capaian" placeholder="0" min="0" />
+      <label for="oee-mp">Jumlah Man Power (Orang):</label>
+      <input type="number" id="oee-mp" placeholder="0" min="0" />
+      <label for="oee-rusak">Jumlah Bahan Kemas Rusak:</label>
+      <input type="number" id="oee-rusak" placeholder="0" min="0" />
+      <label for="oee-alasan-rusak">Alasan Bahan Kemas Rusak:</label>
+      <textarea id="oee-alasan-rusak" rows="2" placeholder="Ketik alasan..."></textarea>
+
+      <!-- SEARCHABLE DROPDOWN VARIAN DETAIL -->
+      <label for="oee-varian">8. Varian Detail (Searchable Dropdown):</label>
+      <input type="text" id="oee-varian" list="list-varian-oee" placeholder="Ketik untuk mencari varian produk..." />
+      <datalist id="list-varian-oee"></datalist>
+    </div>
+
+    <!-- TIM MAINTENANCE FORM -->
+    <div id="form-maintenance" style="display: none;">
+      <label>Status Pekerjaan:</label>
+      <div class="status-group-flex">
+        <button id="btn-maint-mulai" class="toggle-btn" onclick="setMaintenanceStatus('MULAI')">🟢 Mulai Kerja</button>
+        <button id="btn-maint-selesai" class="toggle-btn" onclick="setMaintenanceStatus('SELESAI')">⚫ Selesai Kerja</button>
+      </div>
+
+      <label for="maint-search-mesin">Nama Mesin (Searchable Dropdown):</label>
+      <input type="text" id="maint-search-mesin" list="list-mesin-maintenance" placeholder="Ketik untuk mencari nama mesin..." />
+      <datalist id="list-mesin-maintenance"></datalist>
+
+      <label for="maint-input-no-mesin">Nomor Mesin (Input Manual):</label>
+      <input type="text" id="maint-input-no-mesin" placeholder="Ketik nomor/ID spesifik mesin..." />
+
+      <label for="maint-jenis-rusak">Jenis Kerusakan (Input Manual):</label>
+      <textarea id="maint-jenis-rusak" rows="2" placeholder="Ketik deskripsi fisis kerusakan komponen..."></textarea>
+
+      <div id="block-maint-conditional-selesai" style="display: none; animation: fadeIn 0.2s;">
+        <label for="maint-hasil">Hasil Pengerjaan:</label>
+        <select id="maint-hasil">
+          <option value="Baik">Baik (Selesai Total)</option>
+          <option value="Perbaikan Sementara">Perbaikan Sementara</option>
+          <option value="Tidak bisa diperbaiki">Tidak bisa diperbaiki</option>
+        </select>
+
+        <label for="maint-rekomendasi">Rekomendasi / Solusi:</label>
+        <input type="text" id="maint-rekomendasi" placeholder="Ketik solusi jangka pendek/panjang..." />
+      </div>
+    </div>
+
+    <!-- SUBMIT ACTIONS -->
+    <button class="btn btn-success" style="margin-top: 15px;" onclick="kirimDataKeSpreadsheetServer()">🚀 Kirim Data Ke Server</button>
+    <button class="btn" style="background:#f0f0f0; color:#333; margin-top: 8px; font-size:12px;" onclick="kembaliKeFilter()">⬅ Kembali</button>
+  </div>
+
+  <!-- SECTION 4: PANEL HISTORY LOG (SCROLLABLE) -->
+  <div id="sec-history">
+    <h3 style="font-size: 13px; font-weight: 700; color: #444; display: flex; justify-content: space-between; align-items: center;">
+      <span>📜 Riwayat Input Shift Ini</span>
+      <button onclick="clearHistoryLokal()" style="font-size: 10px; background: none; border: none; color: #ff4d4f; cursor: pointer; font-weight:600;">Hapus Log</button>
+    </h3>
+    
+    <div class="table-scroll-container">
+      <table class="log-table">
+        <thead>
+          <tr>
+            <th style="width: 15%;">Jam</th>
+            <th style="width: 25%;">No Batch</th>
+            <th style="width: 25%;">Mesin / Line</th>
+            <th style="width: 22%;">Info</th>
+            <th style="width: 13%; text-align: center;">Status</th>
+          </tr>
+        </thead>
+        <tbody id="history-table-body">
+          <tr><td colspan="5" style="text-align:center; color:#aaa; font-style:italic;">Belum ada riwayat input.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- HUBUNGKAN KE FILE JAVASCRIPT EKSTERNAL -->
+<script src="script.js"></script>
+</body>
+</html>
