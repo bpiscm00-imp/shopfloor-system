@@ -406,7 +406,6 @@ function renderHistoryTable() {
   const tBody = document.getElementById('history-table-body');
   const logs = JSON.parse(localStorage.getItem('ss_table_logs')) || [];
   
-  // 1. Ambil kontainer tabel untuk memanipulasi header (thead) secara dinamis
   const containerTabel = document.getElementById('sec-history');
   const headTabel = containerTabel.querySelector('thead');
 
@@ -414,19 +413,18 @@ function renderHistoryTable() {
   // 🧪 KONDISI KHUSUS: JIKA YANG LOGIN ADALAH TIM QC
   // =========================================================================
   if (userActive && userActive.role === 'QC') {
-    // Ubah susunan Judul Kolom Tabel Menjadi Horizontal Matriks
     if (headTabel) {
       headTabel.innerHTML = `
         <tr>
-          <th style="width: 30%;">No Batch</th>
-          <th style="width: 30%;">Subbrand Varian</th>
+          <th style="width: 25%;">No Batch</th>
+          <th style="width: 35%;">Subbrand Varian</th>
           <th style="width: 20%; text-align: center;">QC AWAL</th>
           <th style="width: 20%; text-align: center;">QC AKHIR</th>
         </tr>
       `;
     }
 
-    // Filter log murni milik operator QC yang bersangkutan saja
+    // Filter log murni milik operator QC yang aktif
     const qcLogs = logs.filter(l => l.operator === userActive.nama);
 
     if(qcLogs.length === 0) {
@@ -434,55 +432,54 @@ function renderHistoryTable() {
       return;
     }
 
-    // Kelompokkan data vertikal menjadi horizontal berbasis objek No Batch Unik
+    // Kelompokkan data vertikal menjadi horizontal matriks
     const grupQC = {};
     
-    // Looping dari data terlama ke terbaru agar status dan nama varian terkunci sempurna
+    // Looping dari data terlama ke terbaru (indeks besar ke kecil)
     for (let i = qcLogs.length - 1; i >= 0; i--) {
       const l = qcLogs[i];
+      
+      // Jika batch belum terdaftar di grup, buat wadah barunya
       if (!grupQC[l.noBatch]) {
         grupQC[l.noBatch] = {
           noBatch: l.noBatch,
-          info: l.info || selectedMeta.subbrand || "—", // KUNCI PERBAIKAN: Ambil dari l.info atau fallback subbrand aktif
-          awal: { jam: "—", ada: false },
-          akhir: { jam: "—", ada: false }
+          // Mengambil nama subbrand varian murni dari properti .info log reguler atau dari metadata banner
+          subbrand: (l.info && !l.info.includes('Awal:') && !l.info.includes('Akhir:')) ? l.info : (l.subbrand || selectedMeta.subbrand || "—"),
+          awal: { detail: "Belum", ada: false },
+          akhir: { detail: "Belum", ada: false }
         };
       }
       
-      // Pastikan nama varian tetap terisi jika baris log lain memuat info produk
-      if (l.info && l.info !== "—") {
-        grupQC[l.noBatch].info = l.info;
-      }
-      
+      // Ekstrak detail catatan pemeriksaan berdasarkan status aktivitasnya
       if (l.status === "AWAL") {
-        grupQC[l.noBatch].awal = { jam: l.jam, ada: true };
+        grupQC[l.noBatch].awal = { detail: l.jam, ada: true };
       } else if (l.status === "AKHIR") {
-        grupQC[l.noBatch].akhir = { jam: l.jam, ada: true };
+        grupQC[l.noBatch].akhir = { detail: l.jam, ada: true };
       }
     }
 
     // Gambar baris horizontal ke layar browser HP
-    const arrGrup = Object.values(grupQC).reverse(); // Urutkan agar batch terbaru ada di paling atas
+    const arrGrup = Object.values(grupQC).reverse(); // Batch terbaru berada di atas
     tBody.innerHTML = arrGrup.map(g => {
       const badgeAwal = g.awal.ada 
-        ? `<span class="status-badge" style="background:#389e0d; display:block; padding:4px 0; font-size:10px;">✓ ${g.awal.jam}</span>` 
+        ? `<span class="status-badge" style="background:#389e0d; display:block; padding:4px 0; font-size:10px;">✓ ${g.awal.detail}</span>` 
         : `<span class="status-badge" style="background:#bfbfbf; display:block; padding:4px 0; font-size:10px; color:#fff;">Belum</span>`;
         
       const badgeAkhir = g.akhir.ada 
-        ? `<span class="status-badge" style="background:#cf1322; display:block; padding:4px 0; font-size:10px;">✓ ${g.akhir.jam}</span>` 
+        ? `<span class="status-badge" style="background:#cf1322; display:block; padding:4px 0; font-size:10px;">✓ ${g.akhir.detail}</span>` 
         : `<span class="status-badge" style="background:#bfbfbf; display:block; padding:4px 0; font-size:10px; color:#fff;">Belum</span>`;
 
       return `
         <tr>
-          <td style="font-weight:600; vertical-align:middle; padding:8px 4px;">${g.noBatch}</td>
-          <td style="color:#666; font-size:10px; vertical-align:middle; padding:8px 4px;">${g.info}</td>
-          <td style="text-align:center; vertical-align:middle; padding:8px 4px;">${badgeAwal}</td>
-          <td style="text-align:center; vertical-align:middle; padding:8px 4px;">${badgeAkhir}</td>
+          <td style="font-weight:600; vertical-align:middle; padding:10px 4px;">${g.noBatch}</td>
+          <td style="color:#262626; font-size:11px; vertical-align:middle; padding:10px 4px; font-weight:500;">${g.subbrand}</td>
+          <td style="text-align:center; vertical-align:middle; padding:10px 4px;">${badgeAwal}</td>
+          <td style="text-align:center; vertical-align:middle; padding:10px 4px;">${badgeAkhir}</td>
         </tr>
       `;
     }).join('');
 
-    return; // Kunci eksekusi agar tidak bocor ke logika non-QC di bawah
+    return;
   }
 
   // =========================================================================
