@@ -430,7 +430,7 @@ function renderHistoryTable() {
           <th style="width: 20%; text-align: center;">QC AWAL</th>
           <th style="width: 20%; text-align: center;">QC AKHIR</th>
         </tr>
-      ;
+      `;
     }
 
     // 2. Kelompokkan data logs berdasarkan No Batch unik
