@@ -311,8 +311,8 @@ function kirimDataKeSpreadsheetServer() {
       kemas_rusak: document.getElementById('oee-rusak').value || "0", 
       alasan_rusak: document.getElementById('oee-alasan-rusak').value,
       durasi_bersih_menit: durasiMenitBersih.toString(),
-      mesin: document.getElementById('select-mesin').value.trim(),
-      no_mesin: document.getElementById('select-no-mesin').value.trim()
+      mesin: selectedMeta.mesin,
+      no_mesin: selectedMeta.noMesin
     };
     labelStatusLog = "REKAP SHIFT";
   } else if(userActive.role === 'MAINTENANCE') {
