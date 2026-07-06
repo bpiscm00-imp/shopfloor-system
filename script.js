@@ -404,24 +404,17 @@ function catatKeHistoryLogLokal(batch, mesin, noMesin, status, out, customInfo) 
 
 function renderHistoryTable() {
   const tBody = document.getElementById('history-table-body');
-  const tHeader = document.querySelector('.log-table dashed || thead tr'); // Selector header tabel
   const logs = JSON.parse(localStorage.getItem('ss_table_logs')) || [];
   
-  // Filter log murni milik operator yang sedang aktif
-  const filteredLogs = logs.filter(l => l.operator === userActive.nama);
-  
-  if(filteredLogs.length === 0) {
-    tBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#aaa; font-style:italic;">Belum ada riwayat input untuk ${userActive.nama}.</td></tr>`;
-    return;
-  }
+  // 1. Ambil kontainer tabel untuk memanipulasi header (thead) secara dinamis
+  const containerTabel = document.getElementById('sec-history');
+  const headTabel = containerTabel.querySelector('thead');
 
   // =========================================================================
-  // KONDISI KHUSUS: JIKA ROLE ADALAH QC (TRANSFORMASI HORIZONTAL BARIS)
+  // 🧪 KONDISI KHUSUS: JIKA YANG LOGIN ADALAH TIM QC
   // =========================================================================
-  if (userActive.role === 'QC') {
-    // 1. Ubah susunan Header Struktur Tabel Riwayat secara dinamis khusus QC
-    const containerTabel = document.getElementById('sec-history');
-    const headTabel = containerTabel.querySelector('thead');
+  if (userActive && userActive.role === 'QC') {
+    // Ubah susunan Judul Kolom Tabel Menjadi Horizontal Matriks
     if (headTabel) {
       headTabel.innerHTML = `
         <tr>
@@ -433,57 +426,63 @@ function renderHistoryTable() {
       `;
     }
 
-    // 2. Kelompokkan data logs berdasarkan No Batch unik
+    // Filter log murni milik operator QC yang bersangkutan saja
+    const qcLogs = logs.filter(l => l.operator === userActive.nama);
+
+    if(qcLogs.length === 0) {
+      tBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#aaa; font-style:italic;">Belum ada riwayat pemeriksaan QC shift ini.</td></tr>`;
+      return;
+    }
+
+    // Kelompokkan data vertikal menjadi horizontal berbasis objek No Batch Unik
     const grupQC = {};
     
-    // Karena logs baru berada di urutan atas (unshift), kita balik/iterate agar data terbaru menimpa status
-    filteredLogs.forEach(l => {
+    // Looping dari data terlama ke terbaru agar jam ter-update presisi
+    for (let i = qcLogs.length - 1; i >= 0; i--) {
+      const l = qcLogs[i];
       if (!grupQC[l.noBatch]) {
         grupQC[l.noBatch] = {
           noBatch: l.noBatch,
-          info: l.info, // Subbrand
+          info: l.info || "—",
           awal: { jam: "—", ada: false },
           akhir: { jam: "—", ada: false }
         };
       }
       
-      // Ambil jam menit inputan
       if (l.status === "AWAL") {
         grupQC[l.noBatch].awal = { jam: l.jam, ada: true };
       } else if (l.status === "AKHIR") {
         grupQC[l.noBatch].akhir = { jam: l.jam, ada: true };
       }
-    });
+    }
 
-    // 3. Gambar struktur HTML baris horizontal ke dalam body tabel
-    const arrGrup = Object.values(grupQC);
+    // Gambar baris horizontal ke layar browser HP
+    const arrGrup = Object.values(grupQC).reverse(); // Urutkan agar batch terbaru ada di paling atas
     tBody.innerHTML = arrGrup.map(g => {
       const badgeAwal = g.awal.ada 
-        ? `<span class="status-badge" style="background:#389e0d; display:block; padding:4px 0;">✓ ${g.awal.jam}</span>` 
-        : `<span class="status-badge" style="background:#bfbfbf; display:block; padding:4px 0; color:#fff;">Belum</span>`;
+        ? `<span class="status-badge" style="background:#389e0d; display:block; padding:4px 0; font-size:10px;">✓ ${g.awal.jam}</span>` 
+        : `<span class="status-badge" style="background:#bfbfbf; display:block; padding:4px 0; font-size:10px; color:#fff;">Belum</span>`;
         
       const badgeAkhir = g.akhir.ada 
-        ? `<span class="status-badge" style="background:#cf1322; display:block; padding:4px 0;">✓ ${g.akhir.jam}</span>` 
-        : `<span class="status-badge" style="background:#bfbfbf; display:block; padding:4px 0; color:#fff;">Belum</span>`;
+        ? `<span class="status-badge" style="background:#cf1322; display:block; padding:4px 0; font-size:10px;">✓ ${g.akhir.jam}</span>` 
+        : `<span class="status-badge" style="background:#bfbfbf; display:block; padding:4px 0; font-size:10px; color:#fff;">Belum</span>`;
 
       return `
         <tr>
-          <td style="font-weight:600; vertical-align:middle;">${g.noBatch}</td>
-          <td style="color:#666; font-size:10px; vertical-align:middle;">${g.info}</td>
-          <td style="text-align:center; vertical-align:middle;">${badgeAwal}</td>
-          <td style="text-align:center; vertical-align:middle;">${badgeAkhir}</td>
+          <td style="font-weight:600; vertical-align:middle; padding:8px 4px;">${g.noBatch}</td>
+          <td style="color:#666; font-size:10px; vertical-align:middle; padding:8px 4px;">${g.info}</td>
+          <td style="text-align:center; vertical-align:middle; padding:8px 4px;">${badgeAwal}</td>
+          <td style="text-align:center; vertical-align:middle; padding:8px 4px;">${badgeAkhir}</td>
         </tr>
       `;
     }).join('');
 
-    return; // Keluar dari fungsi agar role non-QC tidak mengeksekusi baris bawah
+    return; // Kunci eksekusi agar tidak bocor ke logika non-QC di bawah
   }
 
   // =========================================================================
-  // KONDISI DEFAULT: ROLE NON-QC (SIC, OEE, MAINTENANCE TETAP VERTIKAL KEBALIK)
+  // ⚙️ KONDISI DEFAULT: JIKA ROLE NON-QC (SIC, OEE, MAINTENANCE)
   // =========================================================================
-  const containerTabel = document.getElementById('sec-history');
-  const headTabel = containerTabel.querySelector('thead');
   if (headTabel) {
     headTabel.innerHTML = `
       <tr>
@@ -497,6 +496,7 @@ function renderHistoryTable() {
   }
 
   const filteredNonQC = logs.filter(l => l.role === userActive.role && l.operator === userActive.nama);
+  
   if(filteredNonQC.length === 0) {
     tBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#aaa; font-style:italic;">Belum ada riwayat input shift ini.</td></tr>`;
     return;
@@ -509,11 +509,11 @@ function renderHistoryTable() {
     if (l.status === "MULAI" || l.status === "SANITASI" || l.status === "TENGAH") colorBadge = "#389e0d";
 
     return `<tr>
-      <td>${l.jam}</td>
-      <td style="font-weight:600;">${l.noBatch}</td>
-      <td>${l.mesinLine}</td>
-      <td style="color:#666; font-size:10px;">${l.info}</td>
-      <td style="text-align:center;"><span class="status-badge" style="background:${colorBadge};">${l.status}</span></td>
+      <td style="padding:8px 4px;">${l.jam}</td>
+      <td style="font-weight:600; padding:8px 4px;">${l.noBatch}</td>
+      <td style="padding:8px 4px;">${l.mesinLine || "—"}</td>
+      <td style="color:#666; font-size:10px; padding:8px 4px;">${l.info}</td>
+      <td style="text-align:center; padding:8px 4px;"><span class="status-badge" style="background:${colorBadge};">${l.status}</span></td>
     </tr>`;
   }).join('');
 }
