@@ -375,11 +375,11 @@ function catatKeHistoryLogLokal(batch, mesin, noMesin, status, out, customInfo) 
   let infoDinamisStr = "-";
   if (userActive.role === 'SIC') {
     // REVISI MULTI-USER: Hitung urutan cycle hanya berdasarkan data yang diinput oleh OPERATOR yang sama agar tidak bentrok
-    const hitungSama = logs.filter(l => l.batch === batch && l.mesin_no === mesinNoStr && l.role === 'SIC' && l.operator === userActive.nama).length;
+    const hitungSama = logs.filter(l => (l.noBatch === batch || l.batch === batch) && l.mesin_no === mesinNoStr && l.role === 'SIC' && l.operator === userActive.nama).length;
     infoDinamisStr = `Cyc ${hitungSama + 1}`;
   } else if (userActive.role === 'QC') {
-    const rjc = document.getElementById('qc-reject').value || "0";
-    const rpr = document.getElementById('qc-repro').value || "0";
+    const rjc = document.getElementById('qc-reject')?.value || "0";
+    const rpr = document.getElementById('qc-repro')?.value || "0";
     infoDinamisStr = (status === "AWAL") ? "Start Mon" : `${rjc} Pcs / ${rpr} Kg`;
   } else if (userActive.role === 'OEE' || userActive.role === 'SPV') {
     infoDinamisStr = status === "CLOSED" ? "Locked" : `${out} Pcs`;
@@ -387,15 +387,18 @@ function catatKeHistoryLogLokal(batch, mesin, noMesin, status, out, customInfo) 
     infoDinamisStr = customInfo;
   }
 
-  // REVISI UTAMA: Rekam properti operator (nama user aktif) ke dalam memori log lokal
+  // REVISI UTAMA & PENYELARASAN PROPERTI MATRIKS HORIZONTAL
   logs.unshift({ 
     jam: jamSkrg, 
-    batch: batch, 
+    batch: batch,              // Tetap simpan untuk kompatibilitas fungsi lama jika ada
+    noBatch: batch,            // 🚀 KUNCI 1: Sinkron dengan matriks QC (l.noBatch)
+    subbrand: selectedMeta.subbrand || "—", // 🚀 KUNCI 2: Rekam nama varian produk secara eksplisit
     mesin_no: mesinNoStr, 
+    mesinLine: mesinNoStr,     // Kompatibilitas penamaan
     info: infoDinamisStr, 
     status: status,
     role: userActive.role,
-    operator: userActive.nama // Menyimpan nama user (misal: "AAAA" atau "FFF")
+    operator: userActive.nama 
   });
   
   localStorage.setItem('ss_table_logs', JSON.stringify(logs));
