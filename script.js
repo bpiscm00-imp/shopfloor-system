@@ -420,7 +420,7 @@ function renderHistoryTable() {
       headTabel.innerHTML = `
         <tr>
           <th style="width: 25%;">No Batch</th>
-          <th style="width: 35%;">Subbrand Varian</th>
+          <th style="width: 35%;">Mesin / Line</th>
           <th style="width: 20%; text-align: center;">QC AWAL</th>
           <th style="width: 20%; text-align: center;">QC AKHIR</th>
         </tr>
@@ -442,18 +442,21 @@ function renderHistoryTable() {
     for (let i = qcLogs.length - 1; i >= 0; i--) {
       const l = qcLogs[i];
       
-      // Jika batch belum terdaftar di grup, buat wadah barunya
       if (!grupQC[l.noBatch]) {
         grupQC[l.noBatch] = {
           noBatch: l.noBatch,
-          // Mengambil nama subbrand varian murni dari properti .info log reguler atau dari metadata banner
-          subbrand: (l.info && !l.info.includes('Awal:') && !l.info.includes('Akhir:')) ? l.info : (l.subbrand || selectedMeta.subbrand || "—"),
+          // 🚀 PERBAIKAN UTAMA: Ambil properti mesinLine dari penyimpanan lokal log
+          mesinLine: l.mesinLine || l.mesin_no || selectedMeta.mesin + " (" + selectedMeta.noMesin + ")" || "—",
           awal: { detail: "Belum", ada: false },
           akhir: { detail: "Belum", ada: false }
         };
       }
       
-      // Ekstrak detail catatan pemeriksaan berdasarkan status aktivitasnya
+      // Jika di inputan akhir ada data mesin yang lebih ter-update, kunci datanya
+      if (l.mesinLine && l.mesinLine !== "—") {
+        grupQC[l.noBatch].mesinLine = l.mesinLine;
+      }
+      
       if (l.status === "AWAL") {
         grupQC[l.noBatch].awal = { detail: l.jam, ada: true };
       } else if (l.status === "AKHIR") {
@@ -475,7 +478,7 @@ function renderHistoryTable() {
       return `
         <tr>
           <td style="font-weight:600; vertical-align:middle; padding:10px 4px;">${g.noBatch}</td>
-          <td style="color:#262626; font-size:11px; vertical-align:middle; padding:10px 4px; font-weight:500;">${g.subbrand}</td>
+          <td style="color:#262626; font-size:11px; vertical-align:middle; padding:10px 4px; font-weight:500;">${g.mesinLine}</td>
           <td style="text-align:center; vertical-align:middle; padding:10px 4px;">${badgeAwal}</td>
           <td style="text-align:center; vertical-align:middle; padding:10px 4px;">${badgeAkhir}</td>
         </tr>
