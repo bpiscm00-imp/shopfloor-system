@@ -437,16 +437,21 @@ function renderHistoryTable() {
     // Kelompokkan data vertikal menjadi horizontal berbasis objek No Batch Unik
     const grupQC = {};
     
-    // Looping dari data terlama ke terbaru agar jam ter-update presisi
+    // Looping dari data terlama ke terbaru agar status dan nama varian terkunci sempurna
     for (let i = qcLogs.length - 1; i >= 0; i--) {
       const l = qcLogs[i];
       if (!grupQC[l.noBatch]) {
         grupQC[l.noBatch] = {
           noBatch: l.noBatch,
-          info: l.info || "—",
+          info: l.info || selectedMeta.subbrand || "—", // KUNCI PERBAIKAN: Ambil dari l.info atau fallback subbrand aktif
           awal: { jam: "—", ada: false },
           akhir: { jam: "—", ada: false }
         };
+      }
+      
+      // Pastikan nama varian tetap terisi jika baris log lain memuat info produk
+      if (l.info && l.info !== "—") {
+        grupQC[l.noBatch].info = l.info;
       }
       
       if (l.status === "AWAL") {
