@@ -24,6 +24,9 @@ function cekPINPanjangKarakter() {
   }
 }
 
+// =========================================================================
+// 🔐 1. FUNGSI VERIFIKASI PIN DENGAN INTERMEDIATE LAYAR SELECTION
+// =========================================================================
 function verifikasiPINKeBackend() {
   const pin = document.getElementById('input-pin').value.trim();
   if(pin.length < 4) return;
@@ -35,11 +38,25 @@ function verifikasiPINKeBackend() {
     .then(res => res.json())
     .then(data => {
       if (data.success) {
+        // Ambil data nama asli dari database server Sheets
         userActive.nama = data.nama;
-        userActive.role = data.role;
-        localStorage.setItem('ss_nama', userActive.nama);
-        localStorage.setItem('ss_role', userActive.role);
-        muatMasterDropdownDariServer();
+        
+        // 🚀 EVALUASI MERANGKAP: Jika role di DB adalah SIC atau OEE, arahkan ke layar pertanyaan
+        if (data.role === 'SIC' || data.role === 'OEE') {
+          document.getElementById('sec-login').style.display = 'none';
+          document.getElementById('sec-role-selector').style.display = 'block';
+          
+          // Reset loading status demi estetika visual
+          document.getElementById('btn-login-submit').style.display = 'block';
+          document.getElementById('txt-login-loading').style.display = 'none';
+          document.getElementById('input-pin').value = "";
+        } else {
+          // Untuk role QC dan MAINTENANCE langsung lolos tanpa layar perantara
+          userActive.role = data.role;
+          localStorage.setItem('ss_nama', userActive.nama);
+          localStorage.setItem('ss_role', userActive.role);
+          muatMasterDropdownDariServer();
+        }
       } else {
         alert("❌ PIN Karyawan Tidak Terdaftar di DB_KARYAWAN!");
         document.getElementById('input-pin').value = "";
@@ -52,6 +69,22 @@ function verifikasiPINKeBackend() {
       document.getElementById('btn-login-submit').style.display = 'block';
       document.getElementById('txt-login-loading').style.display = 'none';
     });
+}
+
+// 🚀 FUNGSI BARU: Dipicu saat user memilih salah satu tombol di layar intermediate
+function pilihAksesRoleKerja(roleTerpilih) {
+  // Suntik role pilihan user secara dinamis
+  userActive.role = roleTerpilih;
+  
+  // Amankan sesi ke dalam penyimpanan lokal browser
+  localStorage.setItem('ss_nama', userActive.nama);
+  localStorage.setItem('ss_role', userActive.role);
+  
+  // Pindahkan layar menuju area filter dashboard utama
+  document.getElementById('sec-role-selector').style.display = 'none';
+  
+  // Picu penarikan data master otomatis bawaan aplikasi
+  muatMasterDropdownDariServer();
 }
 
 function logoutAplikasi() { 
