@@ -38,55 +38,44 @@ function verifikasiPINKeBackend() {
     .then(res => res.json())
     .then(data => {
       if (data.success) {
-        // Ambil data nama asli dari database karyawan server Sheets
         userActive.nama = data.nama;
         
-        // 🚀 EVALUASI MERANGKAP: Jika role di DB adalah SIC atau OEE, arahkan ke layar pertanyaan[cite: 1]
+        // JIKA ROLE ADALAH SIC ATAU OEE, ARAHKAN KE PILIHAN FORM
         if (data.role === 'SIC' || data.role === 'OEE') {
-          document.getElementById('sec-login').style.display = 'none';[cite: 1]
+          document.getElementById('sec-login').style.display = 'none';
           document.getElementById('sec-role-selector').style.display = 'block';
           
-          // Reset status elemen loading login demi estetika visual[cite: 1]
-          document.getElementById('btn-login-submit').style.display = 'block';[cite: 1]
-          document.getElementById('txt-login-loading').style.display = 'none';[cite: 1]
-          document.getElementById('input-pin').value = "";[cite: 1]
+          document.getElementById('btn-login-submit').style.display = 'block';
+          document.getElementById('txt-login-loading').style.display = 'none';
+          document.getElementById('input-pin').value = "";
         } else {
-          // Untuk role QC dan MAINTENANCE langsung lolos tanpa layar perantara[cite: 1]
-          userActive.role = data.role;[cite: 1]
-          localStorage.setItem('ss_nama', userActive.nama);[cite: 1]
-          localStorage.setItem('ss_role', userActive.role);[cite: 1]
-          muatMasterDropdownDariServer();[cite: 1]
+          // ROLE NON MERANGKAP LANGSUNG MASUK
+          userActive.role = data.role;
+          localStorage.setItem('ss_nama', userActive.nama);
+          localStorage.setItem('ss_role', userActive.role);
+          muatMasterDropdownDariServer();
         }
       } else {
-        alert("❌ PIN Karyawan Tidak Terdaftar di DB_KARYAWAN!");[cite: 1]
-        document.getElementById('input-pin').value = "";[cite: 1]
-        document.getElementById('btn-login-submit').style.display = 'block';[cite: 1]
-        document.getElementById('txt-login-loading').style.display = 'none';[cite: 1]
+        alert("❌ PIN Karyawan Tidak Terdaftar di DB_KARYAWAN!");
+        document.getElementById('input-pin').value = "";
+        document.getElementById('btn-login-submit').style.display = 'block';
+        document.getElementById('txt-login-loading').style.display = 'none';
       }
     })
     .catch(err => {
-      alert("⚠️ Hambatan jaringan server Sheets.");[cite: 1]
-      document.getElementById('btn-login-submit').style.display = 'block';[cite: 1]
-      document.getElementById('txt-login-loading').style.display = 'none';[cite: 1]
+      alert("⚠️ Hambatan jaringan server Sheets.");
+      document.getElementById('btn-login-submit').style.display = 'block';
+      document.getElementById('txt-login-loading').style.display = 'none';
     });
 }
 
-// 🚀 FUNGSI UTAMA: Dipicu saat operator memilih salah satu tombol kamar kerja (SIC/OEE)
 function pilihAksesRoleKerja(roleTerpilih) {
-  // Suntik role pilihan user secara dinamis ke aplikasi aktif
   userActive.role = roleTerpilih;
-  
-  // Amankan sesi login ke dalam penyimpanan lokal browser
   localStorage.setItem('ss_nama', userActive.nama);
   localStorage.setItem('ss_role', userActive.role);
-  
-  // Pindahkan layar menuju dashboard utama
   document.getElementById('sec-role-selector').style.display = 'none';
-  
-  // Picu penarikan data master otomatis bawaan aplikasi Anda
   muatMasterDropdownDariServer();
 }
-
 function logoutAplikasi() { 
   localStorage.removeItem('ss_nama'); 
   localStorage.removeItem('ss_role'); 
@@ -289,129 +278,118 @@ function bukaFormDenganStatus(statusClick) {
 // 🔀 2. FUNGSI BACK NAVIGASI (KEMBALI KE MENU UTAMA / PILIHAN FORM)
 // =========================================================================
 function kembaliKeFilter() {
-  document.getElementById('sec-form').style.display = 'none';[cite: 1]
+  document.getElementById('sec-form').style.display = 'none';
   
-  // 🚀 ISOLASI LOGIKA: Cek apakah user termasuk tim yang merangkap tugas[cite: 1]
   if (userActive.role === 'SIC' || userActive.role === 'OEE') {
-    // Sembunyikan area filter metadata agar tidak mengunci di role tersebut[cite: 1]
-    document.getElementById('sec-filter').style.display = 'none';[cite: 1]
-    
-    // Tampilkan kembali layar utama pemilihan ruang kerja (Intermediate Menu)
+    document.getElementById('sec-filter').style.display = 'none';
     document.getElementById('sec-role-selector').style.display = 'block';
-    
-    // Bersihkan data role sementara waktu agar state aplikasi netral kembali
     userActive.role = "";
-    localStorage.removeItem('ss_role');[cite: 1]
+    localStorage.removeItem('ss_role');
   } else {
-    // Untuk role QC dan Maintenance tetap normal kembali ke filter panel masing-masing[cite: 1]
-    document.getElementById('sec-filter').style.display = 'block';[cite: 1]
+    document.getElementById('sec-filter').style.display = 'block';
   }
+}
 
 // =========================================================================
 // 🚀 4. FUNGSI SUBMIT FORM UTAMA (DENGAN PUTAR BALIK ELEMEN AUTOMATIC)
 // =========================================================================
 function kirimDataKeSpreadsheetServer() {
-  let labelStatusLog = "NORMAL";[cite: 1]
-  let valOut = "0", infoLogStr = "-";[cite: 1]
+  let labelStatusLog = "NORMAL";
+  let valOut = "0", infoLogStr = "-";
   
-  let finalBatchNumber = selectedMeta.batch;[cite: 1]
-  const digitKit = document.getElementById('input-eyeshadow-kit-digit').value.trim();[cite: 1]
-  const isEyeshadow = selectedMeta.batch.toUpperCase().startsWith("ES");[cite: 1]
-  const isMesinPress = selectedMeta.mesin.toLowerCase().includes("press");[cite: 1]
+  let finalBatchNumber = selectedMeta.batch;
+  const digitKit = document.getElementById('input-eyeshadow-kit-digit').value.trim();
+  const isEyeshadow = selectedMeta.batch.toUpperCase().startsWith("ES");
+  const isMesinPress = selectedMeta.mesin.toLowerCase().includes("press");
 
-  if (isEyeshadow && isMesinPress && digitKit && userActive.role !== 'MAINTENANCE') {[cite: 1]
-    finalBatchNumber = `${selectedMeta.batch}${digitKit}`;[cite: 1]
+  if (isEyeshadow && isMesinPress && digitKit && userActive.role !== 'MAINTENANCE') {
+    finalBatchNumber = `${selectedMeta.batch}${digitKit}`;
   }
 
-  let payload = { action: "submit_form", timestamp: new Date().toLocaleString("id-ID"), operator: userActive.nama, role: userActive.role, metadata: { batch: finalBatchNumber, subbrand: selectedMeta.subbrand, mesin: selectedMeta.mesin, noMesin: selectedMeta.noMesin, statusSICAktif: selectedMeta.statusSICAktif }, form_data: {} };[cite: 1]
+  let payload = { action: "submit_form", timestamp: new Date().toLocaleString("id-ID"), operator: userActive.nama, role: userActive.role, metadata: { batch: finalBatchNumber, subbrand: selectedMeta.subbrand, mesin: selectedMeta.mesin, noMesin: selectedMeta.noMesin, statusSICAktif: selectedMeta.statusSICAktif }, form_data: {} };
 
-  if(userActive.role === 'SIC') {[cite: 1]
-    valOut = document.getElementById('sic-output').value || "0";[cite: 1]
-    payload.form_data = { output_pcs: valOut, alasan_khusus: document.getElementById('sic-alasan').value };[cite: 1]
-    labelStatusLog = selectedMeta.statusSICAktif;[cite: 1]
-  } else if(userActive.role === 'QC') {[cite: 1]
-    const rjc = document.getElementById('qc-reject').value || "0";[cite: 1]
-    const rpr = document.getElementById('qc-repro').value || "0";[cite: 1]
-    payload.form_data = { status_monitoring: selectedMeta.statusQCAktif, reject_pcs: rjc, repro_kg: rpr, alasan_reject_repro: document.getElementById('qc-alasan').value };[cite: 1]
-    labelStatusLog = selectedMeta.statusQCAktif;[cite: 1]
-  } else if(userActive.role === 'OEE') {[cite: 1]
-    valOut = document.getElementById('oee-capaian').value || "0";[cite: 1]
+  if(userActive.role === 'SIC') {
+    valOut = document.getElementById('sic-output').value || "0";
+    payload.form_data = { output_pcs: valOut, alasan_khusus: document.getElementById('sic-alasan').value };
+    labelStatusLog = selectedMeta.statusSICAktif;
+  } else if(userActive.role === 'QC') {
+    const rjc = document.getElementById('qc-reject').value || "0";
+    const rpr = document.getElementById('qc-repro').value || "0";
+    payload.form_data = { status_monitoring: selectedMeta.statusQCAktif, reject_pcs: rjc, repro_kg: rpr, alasan_reject_repro: document.getElementById('qc-alasan').value };
+    labelStatusLog = selectedMeta.statusQCAktif;
+  } else if(userActive.role === 'OEE') {
+    valOut = document.getElementById('oee-capaian').value || "0";
     
-    const jmMulai = document.getElementById('oee-jam-mulai').value;[cite: 1]
-    const jmSelesai = document.getElementById('oee-jam-selesai').value;[cite: 1]
-    const istirahat = Number(document.getElementById('oee-istirahat').value || 0);[cite: 1]
+    const jmMulai = document.getElementById('oee-jam-mulai').value;
+    const jmSelesai = document.getElementById('oee-jam-selesai').value;
+    const istirahat = Number(document.getElementById('oee-istirahat').value || 0);
     
-    let durasiMenitBersih = 0;[cite: 1]
-    if (jmMulai && jmSelesai) {[cite: 1]
-      let [h1, m1] = jmMulai.split(':').map(Number);[cite: 1]
-      let [h2, m2] = jmSelesai.split(':').map(Number);[cite: 1]
-      let t1 = (h1 * 60) + m1, t2 = (h2 * 60) + m2;[cite: 1]
-      if (t2 < t1) t2 += 24 * 60;[cite: 1]
-      durasiMenitBersih = (t2 - t1) - istirahat;[cite: 1]
-      if(durasiMenitBersih < 0) durasiMenitBersih = 0;[cite: 1]
+    let durasiMenitBersih = 0;
+    if (jmMulai && jmSelesai) {
+      let [h1, m1] = jmMulai.split(':').map(Number);
+      let [h2, m2] = jmSelesai.split(':').map(Number);
+      let t1 = (h1 * 60) + m1, t2 = (h2 * 60) + m2;
+      if (t2 < t1) t2 += 24 * 60;
+      durasiMenitBersih = (t2 - t1) - istirahat;
+      if(durasiMenitBersih < 0) durasiMenitBersih = 0;
     }
 
     payload.form_data = { 
-      spv: document.getElementById('oee-spv').value,[cite: 1]
-      tanggal: document.getElementById('oee-tanggal').value,[cite: 1]
-      area: document.getElementById('oee-area').value,[cite: 1]
-      varian: document.getElementById('oee-varian').value,[cite: 1]
-      jam_mulai: jmMulai,[cite: 1]
-      jam_selesai: jmSelesai,[cite: 1]
-      istirahat_menit: istirahat.toString(),[cite: 1]
-      capaian_pcs: valOut,[cite: 1]
-      mp_orang: document.getElementById('oee-mp').value || "0",[cite: 1]
-      kemas_rusak: document.getElementById('oee-rusak').value || "0",[cite: 1]
-      alasan_rusak: document.getElementById('oee-alasan-rusak').value,[cite: 1]
-      durasi_bersih_menit: durasiMenitBersih.toString(),[cite: 1]
-      mesin: selectedMeta.mesin, // Perbaikan baca dari selectedMeta
-      no_mesin: selectedMeta.noMesin // Perbaikan baca dari selectedMeta
+      spv: document.getElementById('oee-spv').value,
+      tanggal: document.getElementById('oee-tanggal').value,
+      area: document.getElementById('oee-area').value,
+      varian: document.getElementById('oee-varian').value,
+      jam_mulai: jmMulai,
+      jam_selesai: jmSelesai,
+      istirahat_menit: istirahat.toString(),
+      capaian_pcs: valOut,
+      mp_orang: document.getElementById('oee-mp').value || "0",
+      kemas_rusak: document.getElementById('oee-rusak').value || "0",
+      alasan_rusak: document.getElementById('oee-alasan-rusak').value,
+      durasi_bersih_menit: durasiMenitBersih.toString(),
+      mesin: selectedMeta.mesin, 
+      no_mesin: selectedMeta.noMesin 
     };
-    labelStatusLog = "REKAP SHIFT";[cite: 1]
-  } else if(userActive.role === 'MAINTENANCE') {[cite: 1]
-    selectedMeta.mesin = document.getElementById('maint-search-mesin').value.trim() || "Mesin-Unspecified";[cite: 1]
-    selectedMeta.noMesin = document.getElementById('maint-input-no-mesin').value.trim() || "No-ID";[cite: 1]
+    labelStatusLog = "REKAP SHIFT";
+  } else if(userActive.role === 'MAINTENANCE') {
+    selectedMeta.mesin = document.getElementById('maint-search-mesin').value.trim() || "Mesin-Unspecified";
+    selectedMeta.noMesin = document.getElementById('maint-input-no-mesin').value.trim() || "No-ID";
     
-    payload.metadata.mesin = selectedMeta.mesin;[cite: 1]
-    payload.metadata.noMesin = selectedMeta.noMesin;[cite: 1]
+    payload.metadata.mesin = selectedMeta.mesin;
+    payload.metadata.noMesin = selectedMeta.noMesin;
     
-    const jenisKerusakan = document.getElementById('maint-jenis-rusak').value;[cite: 1]
-    const hasilKerja = selectedMeta.statusMaintAktif === 'SELESAI' ? document.getElementById('maint-hasil').value : "Mulai Perbaikan";[cite: 1]
+    const jenisKerusakan = document.getElementById('maint-jenis-rusak').value;
+    const hasilKerja = selectedMeta.statusMaintAktif === 'SELESAI' ? document.getElementById('maint-hasil').value : "Mulai Perbaikan";
     
-    payload.form_data = { jenis_kerusakan: jenisKerusakan, hasil_pengerjaan: hasilKerja, rekomendasi_solusi: document.getElementById('maint-rekomendasi').value };[cite: 1]
+    payload.form_data = { jenis_kerusakan: jenisKerusakan, hasil_pengerjaan: hasilKerja, rekomendasi_solusi: document.getElementById('maint-rekomendasi').value };
     
-    labelStatusLog = selectedMeta.statusMaintAktif;[cite: 1]
-    infoLogStr = `[${hasilKerja}] ${jenisKerusakan}`;[cite: 1]
+    labelStatusLog = selectedMeta.statusMaintAktif;
+    infoLogStr = `[${hasilKerja}] ${jenisKerusakan}`;
   }
 
   postDataKeServer(payload, () => {
-    catatKeHistoryLogLokal(finalBatchNumber, selectedMeta.mesin, selectedMeta.noMesin, labelStatusLog, valOut, infoLogStr);[cite: 1]
-    alert("🚀 Sukses! Data berhasil dikirim ke Google Sheets.");[cite: 1]
+    catatKeHistoryLogLokal(finalBatchNumber, selectedMeta.mesin, selectedMeta.noMesin, labelStatusLog, valOut, infoLogStr);
+    alert("🚀 Sukses! Data berhasil dikirim ke Google Sheets.");
     
-    // Reset data kolom input form
-    document.getElementById('sic-output').value = "";[cite: 1]
-    document.getElementById('qc-reject').value = "";[cite: 1]
-    document.getElementById('qc-repro').value = "";[cite: 1]
-    document.getElementById('maint-search-mesin').value = "";[cite: 1]
-    document.getElementById('maint-input-no-mesin').value = "";[cite: 1]
-    document.getElementById('maint-jenis-rusak').value = "";[cite: 1]
-    document.getElementById('maint-rekomendasi').value = "";[cite: 1]
-    document.getElementById('input-eyeshadow-kit-digit').value = "";[cite: 1]
+    document.getElementById('sic-output').value = "";
+    document.getElementById('qc-reject').value = "";
+    document.getElementById('qc-repro').value = "";
+    document.getElementById('maint-search-mesin').value = "";
+    document.getElementById('maint-input-no-mesin').value = "";
+    document.getElementById('maint-jenis-rusak').value = "";
+    document.getElementById('maint-rekomendasi').value = "";
+    document.getElementById('input-eyeshadow-kit-digit').value = "";
     
-    // 🚀 ALUR NAVIGASI BARU: Tutup area form pengisian[cite: 1]
-    document.getElementById('sec-form').style.display = 'none';[cite: 1]
+    document.getElementById('sec-form').style.display = 'none';
     
-    // Cek Tingkat Akses Kebijakan Putar Balik Otomatis[cite: 1]
     if (userActive.role === 'SIC' || userActive.role === 'OEE') {
-      // Hanya operator SIC / OEE merangkap yang dipulangkan murni ke jendela pemilihan form[cite: 1]
-      document.getElementById('sec-filter').style.display = 'none';[cite: 1]
+      document.getElementById('sec-filter').style.display = 'none';
       document.getElementById('sec-role-selector').style.display = 'block';
       userActive.role = "";
-      localStorage.removeItem('ss_role');[cite: 1]
+      localStorage.removeItem('ss_role');
     } else {
-      // Untuk tim QC dan Maintenance, langsung dikembalikan ke halaman filter bawaannya sendiri[cite: 1]
-      document.getElementById('sec-filter').style.display = 'block';[cite: 1]
-      muatMasterDropdownDariServer();[cite: 1]
+      document.getElementById('sec-filter').style.display = 'block';
+      muatMasterDropdownDariServer();
     }
   });
 }
@@ -442,55 +420,51 @@ function postDataKeServer(payload, successCallback) {
 // 📝 3. FUNGSI PENCATATAN DATA LOKAL BROWSER (SINKRON VARIABEL GANDA)
 // =========================================================================
 function catatKeHistoryLogLokal(batch, mesin, noMesin, status, out, customInfo) {
-  let logs = JSON.parse(localStorage.getItem('ss_table_logs')) || [];[cite: 1]
-  const mesinNoStr = `${mesin} (${noMesin})`;[cite: 1]
-  const jamSkrg = new Date().toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit' });[cite: 1]
+  let logs = JSON.parse(localStorage.getItem('ss_table_logs')) || [];
+  const mesinNoStr = `${mesin} (${noMesin})`;
+  const jamSkrg = new Date().toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit' });
 
-  let infoDinamisStr = "-";[cite: 1]
-  if (userActive.role === 'SIC') {[cite: 1]
-    const hitungSama = logs.filter(l => (l.noBatch === batch || l.batch === batch) && l.mesin_no === mesinNoStr && l.role === 'SIC' && l.operator === userActive.nama).length;[cite: 1]
-    infoDinamisStr = `Cyc ${hitungSama + 1}`;[cite: 1]
-  } else if (userActive.role === 'QC') {[cite: 1]
-    const rjc = document.getElementById('qc-reject')?.value || "0";[cite: 1]
-    const rpr = document.getElementById('qc-repro')?.value || "0";[cite: 1]
-    infoDinamisStr = (status === "AWAL") ? "Start Mon" : `${rjc} Pcs / ${rpr} Kg`;[cite: 1]
-  } else if (userActive.role === 'OEE' || userActive.role === 'SPV') {[cite: 1]
-    infoDinamisStr = status === "CLOSED" ? "Locked" : `${out} Pcs`;[cite: 1]
-  } else if (userActive.role === 'MAINTENANCE') {[cite: 1]
-    infoDinamisStr = customInfo;[cite: 1]
+  let infoDinamisStr = "-";
+  if (userActive.role === 'SIC') {
+    const hitungSama = logs.filter(l => (l.noBatch === batch || l.batch === batch) && l.mesin_no === mesinNoStr && l.role === 'SIC' && l.operator === userActive.nama).length;
+    infoDinamisStr = `Cyc ${hitungSama + 1}`;
+  } else if (userActive.role === 'QC') {
+    const rjc = document.getElementById('qc-reject')?.value || "0";
+    const rpr = document.getElementById('qc-repro')?.value || "0";
+    infoDinamisStr = (status === "AWAL") ? "Start Mon" : `${rjc} Pcs / ${rpr} Kg`;
+  } else if (userActive.role === 'OEE' || userActive.role === 'SPV') {
+    infoDinamisStr = status === "CLOSED" ? "Locked" : `${out} Pcs`;
+  } else if (userActive.role === 'MAINTENANCE') {
+    infoDinamisStr = customInfo;
   }
 
-  // Rekam data dengan parameter ganda agar terbaca sempurna di semua bentuk visualisasi tabel
   logs.unshift({ 
-    jam: jamSkrg,[cite: 1]
-    batch: batch,                           // Format lama bawaan filter SIC/OEE/MAINTENANCE[cite: 1]
-    noBatch: batch,                         // Kunci pencarian horizontal matriks QC
-    subbrand: selectedMeta.subbrand || "—",  // Mengamankan teks nama varian produk murni
-    mesin_no: mesinNoStr,                   // Format lama bawaan filter SIC/OEE/MAINTENANCE[cite: 1]
-    mesinLine: mesinNoStr,                  // Kunci pencarian horizontal matriks QC
-    info: infoDinamisStr,[cite: 1]
-    status: status,[cite: 1]
-    role: userActive.role,[cite: 1]
-    operator: userActive.nama[cite: 1]
+    jam: jamSkrg, 
+    batch: batch,
+    noBatch: batch,
+    subbrand: selectedMeta.subbrand || "—",
+    mesin_no: mesinNoStr,
+    mesinLine: mesinNoStr,
+    info: infoDinamisStr, 
+    status: status,
+    role: userActive.role,
+    operator: userActive.nama 
   });
   
-  localStorage.setItem('ss_table_logs', JSON.stringify(logs));[cite: 1]
-  renderHistoryTable();[cite: 1]
+  localStorage.setItem('ss_table_logs', JSON.stringify(logs));
+  renderHistoryTable();
 }
 
 // =========================================================================
 // 📊 5. RENDERING VISUAL TABEL LOG RIWAYAT (DIVERSIFIKASI LAYOUT)
 // =========================================================================
 function renderHistoryTable() {
-  const tBody = document.getElementById('history-table-body');[cite: 1]
-  const logs = JSON.parse(localStorage.getItem('ss_table_logs')) || [];[cite: 1]
+  const tBody = document.getElementById('history-table-body');
+  const logs = JSON.parse(localStorage.getItem('ss_table_logs')) || [];
   
-  const containerTabel = document.getElementById('sec-history');[cite: 1]
-  const headTabel = containerTabel.querySelector('thead');[cite: 1]
+  const containerTabel = document.getElementById('sec-history');
+  const headTabel = containerTabel.querySelector('thead');
 
-  // =========================================================================
-  // 🧪 KONDISI KHUSUS: TIM QC (MATRIKS HORIZONTAL MESIN LINE)
-  // =========================================================================
   if (userActive && userActive.role === 'QC') {
     if (headTabel) {
       headTabel.innerHTML = `
@@ -503,17 +477,15 @@ function renderHistoryTable() {
       `;
     }
 
-    // Filter log data murni milik operator QC aktif saja[cite: 1]
-    const qcLogs = logs.filter(l => l.operator === userActive.nama);[cite: 1]
+    const qcLogs = logs.filter(l => l.operator === userActive.nama);
 
     if(qcLogs.length === 0) {
-      tBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#aaa; font-style:italic;">Belum ada riwayat pemeriksaan QC shift ini.</td></tr>`;[cite: 1]
+      tBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#aaa; font-style:italic;">Belum ada riwayat pemeriksaan QC shift ini.</td></tr>`;
       return;
     }
 
     const grupQC = {};
     
-    // Looping data kronologis terlama ke terbaru (indeks besar ke kecil)
     for (let i = qcLogs.length - 1; i >= 0; i--) {
       const l = qcLogs[i];
       
@@ -530,14 +502,13 @@ function renderHistoryTable() {
         grupQC[l.noBatch].mesinLine = l.mesinLine;
       }
       
-      if (l.status === "AWAL") {[cite: 1]
-        grupQC[l.noBatch].awal = { detail: l.jam, ada: true };[cite: 1]
-      } else if (l.status === "AKHIR") {[cite: 1]
-        grupQC[l.noBatch].akhir = { detail: l.jam, ada: true };[cite: 1]
+      if (l.status === "AWAL") {
+        grupQC[l.noBatch].awal = { detail: l.jam, ada: true };
+      } else if (l.status === "AKHIR") {
+        grupQC[l.noBatch].akhir = { detail: l.jam, ada: true };
       }
     }
 
-    // Tampilkan hasil pemetaan horizontal matriks ke dalam HTML[cite: 1]
     const arrGrup = Object.values(grupQC).reverse();
     tBody.innerHTML = arrGrup.map(g => {
       const badgeAwal = g.awal.ada 
@@ -558,12 +529,9 @@ function renderHistoryTable() {
       `;
     }).join('');
 
-    return; // Keluar murni agar tidak mengeksekusi visualisasi vertikal non-QC[cite: 1]
+    return; 
   }
 
-  // =========================================================================
-  // ⚙️ KONDISI DEFAULT: TIM NON-QC (SIC, OEE, MAINTENANCE VERTIKAL REGULER)
-  // =========================================================================
   if (headTabel) {
     headTabel.innerHTML = `
       <tr>
@@ -576,25 +544,25 @@ function renderHistoryTable() {
     `;
   }
 
-  const filteredNonQC = logs.filter(l => l.role === userActive.role && l.operator === userActive.nama);[cite: 1]
+  const filteredNonQC = logs.filter(l => l.role === userActive.role && l.operator === userActive.nama);
   
   if(filteredNonQC.length === 0) {
-    tBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#aaa; font-style:italic;">Belum ada riwayat input shift ini.</td></tr>`;[cite: 1]
+    tBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#aaa; font-style:italic;">Belum ada riwayat input shift ini.</td></tr>`;
     return;
   }
 
   tBody.innerHTML = filteredNonQC.map(l => {
-    let colorBadge = "#096dd9";[cite: 1]
-    if (l.status === "ISTIRAHAT") colorBadge = "#d46b08";[cite: 1]
-    if (l.status === "SELESAI" || l.status === "AKHIR" || l.status === "CLOSED" || l.status === "REKAP SHIFT") colorBadge = "#cf1322";[cite: 1]
-    if (l.status === "MULAI" || l.status === "SANITASI" || l.status === "TENGAH") colorBadge = "#389e0d";[cite: 1]
+    let colorBadge = "#096dd9";
+    if (l.status === "ISTIRAHAT") colorBadge = "#d46b08";
+    if (l.status === "SELESAI" || l.status === "AKHIR" || l.status === "CLOSED" || l.status === "REKAP SHIFT") colorBadge = "#cf1322";
+    if (l.status === "MULAI" || l.status === "SANITASI" || l.status === "TENGAH") colorBadge = "#389e0d";
 
     return `<tr>
-      <td style="padding:8px 4px;">${l.jam}</td>[cite: 1]
-      <td style="font-weight:600; padding:8px 4px;">${l.noBatch || l.batch}</td>[cite: 1]
-      <td style="padding:8px 4px;">${l.mesinLine || l.mesin_no || "—"}</td>[cite: 1]
-      <td style="color:#666; font-size:10px; padding:8px 4px;">${l.info}</td>[cite: 1]
-      <td style="text-align:center; padding:8px 4px;"><span class="status-badge" style="background:${colorBadge}; color:#fff; padding:3px 6px; border-radius:4px; font-size:10px; font-weight:700;">${l.status}</span></td>[cite: 1]
+      <td style="padding:8px 4px;">${l.jam}</td>
+      <td style="font-weight:600; padding:8px 4px;">${l.noBatch || l.batch}</td>
+      <td style="padding:8px 4px;">${l.mesinLine || l.mesin_no || "—"}</td>
+      <td style="color:#666; font-size:10px; padding:8px 4px;">${l.info}</td>
+      <td style="text-align:center; padding:8px 4px;"><span class="status-badge" style="background:${colorBadge}; color:#fff; padding:3px 6px; border-radius:4px; font-size:10px; font-weight:700;">${l.status}</span></td>
     </tr>`;
   }).join('');
 }
