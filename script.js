@@ -25,11 +25,28 @@ function cekPINPanjangKarakter() {
 }
 
 // =========================================================================
-// 🔐 1. VERIFIKASI PIN & GERBANG UTAMA (INTERMEDIATE ROLE SELECTOR)
+// 🔓 SAKELAR AKTIVASI PIN TRIAL (HARDCODED CONTROL)
+// =========================================================================
+// SAKELAR UTAMA: Ubah menjadi false untuk MENGUNCI, ubah menjadi true jika ingin MENGAKTIFKAN KEMBALI
+const APAPUN_PIN_TRIAL_AKTIF = false; 
+
+// Daftar PIN trial/demo sesuai data di Google Sheets Anda
+const DAFTAR_PIN_TRIAL_HARDCODED = ["0011", "4455", "5566", "7788"];
+
+
+// =========================================================================
+// 🔐 1. VERIFIKASI PIN & INPUT VALIDATION (WITH HARDCODED TRIAL LOCK)
 // =========================================================================
 function verifikasiPINKeBackend() {
   const pin = document.getElementById('input-pin').value.trim();
   if(pin.length < 4) return;
+
+  // 🚀 KUNCI PERBAIKAN: Proteksi Hardcoded PIN Trial
+  if (DAFTAR_PIN_TRIAL_HARDCODED.includes(pin) && !APAPUN_PIN_TRIAL_AKTIF) {
+    alert("❌ Akses Ditolak! PIN Trial/Demo ini telah dinonaktifkan secara permanen. Silakan gunakan PIN resmi pribadi Anda untuk masuk.");
+    document.getElementById('input-pin').value = "";
+    return; // Blokir paksa di sini, jangan biarkan sistem memproses fetch ke server
+  }
 
   document.getElementById('btn-login-submit').style.display = 'none';
   document.getElementById('txt-login-loading').style.display = 'block';
@@ -38,9 +55,12 @@ function verifikasiPINKeBackend() {
     .then(res => res.json())
     .then(data => {
       if (data.success) {
+        // Langsung suntik nama ter-update dari server ke objek aktif
         userActive.nama = data.nama;
         
-        // JIKA ROLE ADALAH SIC ATAU OEE, ARAHKAN KE PILIHAN FORM
+        // Langsung paksa timpa localStorage dengan nama terbaru dari server
+        localStorage.setItem('ss_nama', data.nama);
+        
         if (data.role === 'SIC' || data.role === 'OEE') {
           document.getElementById('sec-login').style.display = 'none';
           document.getElementById('sec-role-selector').style.display = 'block';
@@ -49,9 +69,7 @@ function verifikasiPINKeBackend() {
           document.getElementById('txt-login-loading').style.display = 'none';
           document.getElementById('input-pin').value = "";
         } else {
-          // ROLE NON MERANGKAP LANGSUNG MASUK
           userActive.role = data.role;
-          localStorage.setItem('ss_nama', userActive.nama);
           localStorage.setItem('ss_role', userActive.role);
           muatMasterDropdownDariServer();
         }
@@ -568,3 +586,47 @@ function renderHistoryTable() {
 }
 
 function clearHistoryLokal() { localStorage.removeItem('ss_table_logs'); renderHistoryTable(); }
+
+// =========================================================================
+// 🔄 AUTO-REFRESH & VALIDASI DATA KARYAWAN SAAT BROWSER DIBUKA KEMBALI
+// =========================================================================
+document.addEventListener("visibilitychange", function () {
+  if (document.visibilityState === "visible") {
+    const namaLokal = localStorage.getItem('ss_nama');
+
+    if (!namaLokal) return;
+
+    console.log("🔄 Browser mendeteksi tab dibuka kembali. Mengecek validitas akun...");
+
+    // 🚀 DAFTAR BLACKLIST AKUN TRIAL: Sesuaikan dengan nama demo di Google Sheets Anda
+    const namaUpper = namaLokal.toUpperCase();
+    const isAkunTrial = 
+      namaUpper === "AAAA" || 
+      namaUpper === "BBBB" || 
+      namaUpper === "CCCC" || 
+      namaUpper === "DDDD" || 
+      namaUpper === "EEEE" || 
+      namaUpper.includes("DEMO") || 
+      namaUpper.includes("TRIAL");
+
+    if (isAkunTrial) {
+      console.log("🧹 Menyapu bersih akun demo/trial usang yang tersangkut...");
+      
+      // Hapus data sesi login lama di browser HP operator
+      localStorage.removeItem('ss_nama');
+      localStorage.removeItem('ss_role');
+      
+      // Kosongkan variabel state javascript aktif
+      userActive = { nama: "", role: "" };
+      
+      alert("🔄 Sesi uji coba/demo telah disegarkan. Silakan masukkan PIN resmi Anda kembali.");
+      window.location.reload();
+      return;
+    }
+
+    // Jika yang login adalah user asli (Bukan trial), cukup segarkan master data dari server
+    if (typeof muatMasterDropdownDariServer === "function" && userActive.nama) {
+      muatMasterDropdownDariServer();
+    }
+  }
+});
