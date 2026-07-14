@@ -445,6 +445,7 @@ function catatKeHistoryLogLokal(batch, mesin, noMesin, status, out, customInfo) 
   let infoDinamisStr = "-";
   if (userActive.role === 'SIC') {
     const hitungSama = logs.filter(l => (l.noBatch === batch || l.batch === batch) && l.mesin_no === mesinNoStr && l.role === 'SIC' && l.operator === userActive.nama).length;
+    // Tetap simpan penanda Cyc di teks info untuk pencatatan internal jika dibutuhkan
     infoDinamisStr = `Cyc ${hitungSama + 1}`;
   } else if (userActive.role === 'QC') {
     const rjc = document.getElementById('qc-reject')?.value || "0";
@@ -456,6 +457,7 @@ function catatKeHistoryLogLokal(batch, mesin, noMesin, status, out, customInfo) 
     infoDinamisStr = customInfo;
   }
 
+  // 🚀 PERBAIKAN STRUKTUR: Tambahkan properti 'outputPcs' khusus agar tersimpan bersih berupa angka + Pcs
   logs.unshift({ 
     jam: jamSkrg, 
     batch: batch,
@@ -464,6 +466,7 @@ function catatKeHistoryLogLokal(batch, mesin, noMesin, status, out, customInfo) 
     mesin_no: mesinNoStr,
     mesinLine: mesinNoStr,
     info: infoDinamisStr, 
+    outputPcs: out ? `${out} Pcs` : "0 Pcs", // <-- Menyimpan nominal asli input (misal: "150 Pcs")
     status: status,
     role: userActive.role,
     operator: userActive.nama 
@@ -483,6 +486,9 @@ function renderHistoryTable() {
   const containerTabel = document.getElementById('sec-history');
   const headTabel = containerTabel.querySelector('thead');
 
+  // =========================================================================
+  // 🧪 KONDISI KHUSUS: TIM QC (MATRIKS HORIZONTAL QC AWAL / AKHIR)
+  // =========================================================================
   if (userActive && userActive.role === 'QC') {
     if (headTabel) {
       headTabel.innerHTML = `
@@ -496,17 +502,14 @@ function renderHistoryTable() {
     }
 
     const qcLogs = logs.filter(l => l.operator === userActive.nama);
-
     if(qcLogs.length === 0) {
       tBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#aaa; font-style:italic;">Belum ada riwayat pemeriksaan QC shift ini.</td></tr>`;
       return;
     }
 
     const grupQC = {};
-    
     for (let i = qcLogs.length - 1; i >= 0; i--) {
       const l = qcLogs[i];
-      
       if (!grupQC[l.noBatch]) {
         grupQC[l.noBatch] = {
           noBatch: l.noBatch,
@@ -515,16 +518,9 @@ function renderHistoryTable() {
           akhir: { detail: "Belum", ada: false }
         };
       }
-      
-      if (l.mesinLine && l.mesinLine !== "—") {
-        grupQC[l.noBatch].mesinLine = l.mesinLine;
-      }
-      
-      if (l.status === "AWAL") {
-        grupQC[l.noBatch].awal = { detail: l.jam, ada: true };
-      } else if (l.status === "AKHIR") {
-        grupQC[l.noBatch].akhir = { detail: l.jam, ada: true };
-      }
+      if (l.mesinLine && l.mesinLine !== "—") { grupQC[l.noBatch].mesinLine = l.mesinLine; }
+      if (l.status === "AWAL") { grupQC[l.noBatch].awal = { detail: l.jam, ada: true }; }
+      else if (l.status === "AKHIR") { grupQC[l.noBatch].akhir = { detail: l.jam, ada: true }; }
     }
 
     const arrGrup = Object.values(grupQC).reverse();
@@ -532,24 +528,155 @@ function renderHistoryTable() {
       const badgeAwal = g.awal.ada 
         ? `<span class="status-badge" style="background:#389e0d; display:block; padding:4px 0; font-size:10px; color:#fff; font-weight:700; border-radius:4px;">✓ ${g.awal.detail}</span>` 
         : `<span class="status-badge" style="background:#bfbfbf; display:block; padding:4px 0; font-size:10px; color:#fff; border-radius:4px;">Belum</span>`;
-        
       const badgeAkhir = g.akhir.ada 
         ? `<span class="status-badge" style="background:#cf1322; display:block; padding:4px 0; font-size:10px; color:#fff; font-weight:700; border-radius:4px;">✓ ${g.akhir.detail}</span>` 
         : `<span class="status-badge" style="background:#bfbfbf; display:block; padding:4px 0; font-size:10px; color:#fff; border-radius:4px;">Belum</span>`;
 
-      return `
-        <tr>
-          <td style="font-weight:600; vertical-align:middle; padding:10px 4px;">${g.noBatch}</td>
-          <td style="color:#262626; font-size:11px; vertical-align:middle; padding:10px 4px; font-weight:500;">${g.mesinLine}</td>
-          <td style="text-align:center; vertical-align:middle; padding:10px 4px;">${badgeAwal}</td>
-          <td style="text-align:center; vertical-align:middle; padding:10px 4px;">${badgeAkhir}</td>
-        </tr>
-      `;
+      return `<tr>
+        <td style="font-weight:600; vertical-align:middle; padding:10px 4px;">${g.noBatch}</td>
+        <td style="color:#262626; font-size:11px; vertical-align:middle; padding:10px 4px; font-weight:500;">${g.mesinLine}</td>
+        <td style="text-align:center; vertical-align:middle; padding:10px 4px;">${badgeAwal}</td>
+        <td style="text-align:center; vertical-align:middle; padding:10px 4px;">${badgeAkhir}</td>
+      </tr>`;
     }).join('');
-
     return; 
   }
 
+  // =========================================================================
+  // 📊 KONDISI BARU: TIM SIC & OEE (MATRIKS HORIZONTAL CHECKLIST TRACKER)
+  // =========================================================================
+  if (userActive && (userActive.role === 'SIC' || userActive.role === 'OEE')) {
+    if (headTabel) {
+      headTabel.innerHTML = `
+        <tr>
+          <th style="font-size:11px; padding:6px 2px;">No Batch / Mesin</th>
+          <th style="text-align:center; font-size:11px; padding:6px 2px;">1</th>
+          <th style="text-align:center; font-size:11px; padding:6px 2px;">2</th>
+          <th style="text-align:center; font-size:11px; padding:6px 2px;">3</th>
+          <th style="text-align:center; font-size:11px; padding:6px 2px;">4</th>
+          <th style="text-align:center; font-size:11px; padding:6px 2px;">5</th>
+          <th style="text-align:center; font-size:11px; padding:6px 2px;">6</th>
+          <th style="text-align:center; font-size:11px; padding:6px 2px;">7</th>
+          <th style="text-align:center; font-size:11px; padding:6px 2px;">8</th>
+          <th style="text-align:center; font-size:11px; padding:6px 2px; background:#e6f7ff; color:#0050b3;">OEE</th>
+        </tr>
+      `;
+    }
+
+    // Filter log data khusus untuk operator aktif saat ini
+    const prodLogs = logs.filter(l => l.operator === userActive.nama);
+    if(prodLogs.length === 0) {
+      tBody.innerHTML = `<tr><td colspan="10" style="text-align:center; color:#aaa; font-style:italic;">Belum ada log aktivitas produksi shift ini.</td></tr>`;
+      return;
+    }
+
+    // Mengelompokkan log secara horizontal berbasis kombinasi Batch & Mesin
+    // Mengelompokkan log secara horizontal berbasis kombinasi Batch & Mesin
+    const matriksData = {};
+    
+    for (let i = prodLogs.length - 1; i >= 0; i--) {
+      const l = prodLogs[i];
+      const kunciGrup = `${l.noBatch || l.batch}_${l.mesinLine || l.mesin_no}`;
+
+      if (!matriksData[kunciGrup]) {
+        matriksData[kunciGrup] = {
+          batch: l.noBatch || l.batch,
+          mesin: l.mesinLine || l.mesin_no,
+          cycles: [], 
+          oeeData: null,
+          sudahSelesai: false
+        };
+      }
+
+      if (l.role === 'SIC') {
+        // 🚀 KUNCI PERBAIKAN: Ambil dari l.outputPcs, jika kosong atau log lama baru fallback ke l.info
+        const teksOutputTampil = l.outputPcs || l.info || "0 Pcs";
+        
+        matriksData[kunciGrup].cycles.push({ 
+          jam: l.jam, 
+          output: teksOutputTampil 
+        });
+        
+        if (l.status === 'SELESAI') {
+          matriksData[kunciGrup].sudahSelesai = true;
+        }
+      } else if (l.role === 'OEE' || l.status === 'REKAP SHIFT') {
+        matriksData[kunciGrup].oeeData = { jam: l.jam, total: l.outputPcs || l.info };
+      }
+    }
+    const arrMatriks = Object.values(matriksData).reverse(); // Batch terbaru berada paling atas
+    
+    tBody.innerHTML = arrMatriks.map(row => {
+      let tdCyclesHtml = "";
+      
+      // Menggambar Kolom Siklus Jam 1 sampai 8
+      for (let slot = 0; slot < 8; slot++) {
+        const itemLog = row.cycles[slot];
+        
+        if (itemLog) {
+          // Ekstrak string angka murni dari info (contoh 'Cyc 1' diubah atau dibaca langsung)
+          const infoOutput = itemLog.output; 
+          
+          tdCyclesHtml += `
+            <td style="text-align:center; vertical-align:middle; padding:4px 2px; background:#f6ffed; border:1px solid #b7eb8f;">
+              <div style="font-size:11px; font-weight:700; color:#389e0d;">${infoOutput}</div>
+              <div style="font-size:9px; color:#73d13d; margin-top:2px;">${itemLog.jam}</div>
+            </td>
+          `;
+        } else {
+          // Jika proses sudah dinyatakan SELESAI, kolom sisa ditutup tanda strip (-)
+          // Jika masih PROSES, kolom sisa diberikan tanda tanya (?) sebagai pengingat bolong
+          const tandaKosong = row.sudahSelesai ? "—" : "?";
+          const warnaTeks = row.sudahSelesai ? "#bfbfbf" : "#ff4d4f";
+          const warnaBg = row.sudahSelesai ? "#fafafa" : "#fff1f0";
+
+          tdCyclesHtml += `
+            <td style="text-align:center; vertical-align:middle; padding:6px 2px; color:${warnaTeks}; background:${warnaBg}; font-weight:bold; font-size:11px;">
+              ${tandaKosong}
+            </td>
+          `;
+        }
+      }
+
+      // Menggambar Kolom Status OEE di Ujung Kanan Matriks
+      let tdOeeHtml = "";
+      if (row.oeeData) {
+        tdOeeHtml = `
+          <td style="text-align:center; vertical-align:middle; padding:4px 2px; background:#e6f7ff; border:1px solid #91d5ff;">
+            <div style="font-size:11px; font-weight:700; color:#0050b3;">${row.oeeData.total}</div>
+            <div style="font-size:9px; color:#40a9ff; margin-top:2px;">${row.oeeData.jam}</div>
+          </td>
+        `;
+      } else {
+        // Jika SIC belum diisi tombol "SELESAI", OEE bertanda tangguh (Tunggu SIC)
+        const labelOee = row.sudahSelesai ? "Isi OEE" : "Wait SIC";
+        const bgOee = row.sudahSelesai ? "#fffbe6" : "#fafafa";
+        const colorOee = row.sudahSelesai ? "#d46b08" : "#bfbfbf";
+        
+        tdOeeHtml = `
+          <td style="text-align:center; vertical-align:middle; padding:6px 2px; background:${bgOee}; color:${colorOee}; font-size:10px; font-weight:700;">
+            ${labelOee}
+          </td>
+        `;
+      }
+
+      return `
+        <tr>
+          <td style="padding:6px 4px; vertical-align:middle;">
+            <div style="font-weight:700; font-size:11px; color:#262626;">${row.batch}</div>
+            <div style="font-size:9px; color:#8c8c8c; margin-top:2px;">${row.mesin}</div>
+          </td>
+          ${tdCyclesHtml}
+          ${tdOeeHtml}
+        </tr>
+      `;
+    }).join('');
+    return;
+  }
+
+  // =========================================================================
+  // ⚙️ KONDISI REGULER: TIM MAINTENANCE (VERTIKAL REGULER)
+  // =========================================================================
   if (headTabel) {
     headTabel.innerHTML = `
       <tr>
@@ -562,18 +689,16 @@ function renderHistoryTable() {
     `;
   }
 
-  const filteredNonQC = logs.filter(l => l.role === userActive.role && l.operator === userActive.nama);
-  
-  if(filteredNonQC.length === 0) {
-    tBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#aaa; font-style:italic;">Belum ada riwayat input shift ini.</td></tr>`;
+  const filteredMaint = logs.filter(l => l.role === userActive.role && l.operator === userActive.nama);
+  if(filteredMaint.length === 0) {
+    tBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#aaa; font-style:italic;">Belum ada riwayat input maintenance shift ini.</td></tr>`;
     return;
   }
 
-  tBody.innerHTML = filteredNonQC.map(l => {
+  tBody.innerHTML = filteredMaint.map(l => {
     let colorBadge = "#096dd9";
-    if (l.status === "ISTIRAHAT") colorBadge = "#d46b08";
-    if (l.status === "SELESAI" || l.status === "AKHIR" || l.status === "CLOSED" || l.status === "REKAP SHIFT") colorBadge = "#cf1322";
-    if (l.status === "MULAI" || l.status === "SANITASI" || l.status === "TENGAH") colorBadge = "#389e0d";
+    if (l.status === "MULAI") colorBadge = "#389e0d";
+    if (l.status === "SELESAI") colorBadge = "#cf1322";
 
     return `<tr>
       <td style="padding:8px 4px;">${l.jam}</td>
