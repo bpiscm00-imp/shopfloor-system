@@ -487,7 +487,7 @@ function renderHistoryTable() {
   const headTabel = containerTabel.querySelector('thead');
 
   // =========================================================================
-  // 🧪 KONDISI KHUSUS: TIM QC (MATRIKS HORIZONTAL QC AWAL / AKHIR)
+  // 🧪 KONDISI KHUSUS PERBAIKAN: TIM QC (MATRIKS HORIZONTAL ANTI-OVERWRITE)
   // =========================================================================
   if (userActive && userActive.role === 'QC') {
     if (headTabel) {
@@ -510,17 +510,29 @@ function renderHistoryTable() {
     const grupQC = {};
     for (let i = qcLogs.length - 1; i >= 0; i--) {
       const l = qcLogs[i];
-      if (!grupQC[l.noBatch]) {
-        grupQC[l.noBatch] = {
-          noBatch: l.noBatch,
-          mesinLine: l.mesinLine || l.mesin_no || `${selectedMeta.mesin} (${selectedMeta.noMesin})` || "—",
+      
+      // Ambil string nama mesin yang valid
+      const namaMesinFix = l.mesinLine || l.mesin_no || `${selectedMeta.mesin} (${selectedMeta.noMesin})` || "—";
+      
+      // 🚀 KUNCI PERBAIKAN: Gabungkan Batch dan Mesin sebagai Key Grup unik!
+      // Ini mencegah data Press 4 tertimpa oleh Press 5 meskipun nomor batch-nya sama.
+      const kunciGrupQC = `${l.noBatch || l.batch}_${namaMesinFix}`;
+
+      if (!grupQC[kunciGrupQC]) {
+        grupQC[kunciGrupQC] = {
+          noBatch: l.noBatch || l.batch,
+          mesinLine: namaMesinFix,
           awal: { detail: "Belum", ada: false },
           akhir: { detail: "Belum", ada: false }
         };
       }
-      if (l.mesinLine && l.mesinLine !== "—") { grupQC[l.noBatch].mesinLine = l.mesinLine; }
-      if (l.status === "AWAL") { grupQC[l.noBatch].awal = { detail: l.jam, ada: true }; }
-      else if (l.status === "AKHIR") { grupQC[l.noBatch].akhir = { detail: l.jam, ada: true }; }
+      
+      // Isi detail jam berdasarkan status monitoring QC
+      if (l.status === "AWAL") { 
+        grupQC[kunciGrupQC].awal = { detail: l.jam, ada: true }; 
+      } else if (l.status === "AKHIR") { 
+        grupQC[kunciGrupQC].akhir = { detail: l.jam, ada: true }; 
+      }
     }
 
     const arrGrup = Object.values(grupQC).reverse();
